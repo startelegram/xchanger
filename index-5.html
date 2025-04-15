@@ -1,0 +1,1235 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en" dir="ltr" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speedy Exchanger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      overscroll-behavior-y: none;
+      overflow-y: auto;
+      margin: 0;
+      height: 100vh;
+    }
+    button {
+      border: none;
+      outline: none;
+    }
+    input, select {
+      border: none;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+    .error-message {
+      display: none;
+      color: #f87171;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #ef4444;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    .success-toast {
+      background-color: #22c55e;
+    }
+    .section-transition {
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .section-transition.show {
+      opacity: 1;
+    }
+    .success-icon {
+      animation: zoomIn 0.5s ease-in-out;
+    }
+    @keyframes zoomIn {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+    select.bg-gray-600:focus,
+    input.bg-gray-600:focus {
+      border: 2px solid #f97316;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #4b5563;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress {
+      height: 100%;
+      background-color: #f97316;
+      transition: width 0.3s ease-in-out;
+    }
+    @media (max-width: 640px) {
+      .flex.items-center.space-x-2 {
+        flex-direction: column;
+        space-x-0;
+        gap: 0.5rem;
+      }
+      .flex.items-center.space-x-2 input,
+      .flex.items-center.space-x-2 select {
+        width: 100%;
+      }
+      h1, h2, h3, p, label, button, input, select {
+        font-size: calc(0.8rem + 0.5vw);
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-b from-blue-900 to-black text-white min-h-screen font-sans">
+  <!-- Header -->
+  <header class="flex justify-between items-center p-4">
+    <div class="flex items-center">
+      <h1 class="text-2xl font-bold text-orange-500" data-i18n="headerTitle">SPEEDY <span class="text-red-500">EXCHANGER</span></h1>
+    </div>
+    <div class="flex items-center space-x-2">
+      <img src="https://flagcdn.com/16x12/gb.png" alt="UK Flag" class="w-4 h-4">
+      <button id="languageToggle" class="text-sm text-white">English</button>
+      <button class="text-white focus:outline-none text-xl">☰</button>
+    </div>
+  </header>
+
+  <!-- Main Exchange Section -->
+  <section id="exchangeSection" class="px-4 section-transition show">
+    <h2 class="text-3xl text-blue-300 text-center mb-4" data-i18n="fasterExchange">faster exchange on the world</h2>
+    <div class="bg-gray-800 rounded-lg p-4 shadow-lg">
+      <!-- Tabs -->
+      <div class="flex justify-between mb-3">
+        <button id="mainExchangeTab" class="bg-orange-500 text-white px-3 py-1.5 rounded-lg flex-1 mr-1.5 text-sm" data-i18n="mainExchange">Main Exchange</button>
+        <button id="favoriteExchangeTab" class="bg-gray-700 text-white px-3 py-1.5 rounded-lg flex-1 text-sm" data-i18n="favoriteExchange">Favorite Exchange</button>
+      </div>
+
+      <!-- You Send -->
+      <div class="mb-3">
+        <label class="block text-xs mb-1" data-i18n="youSend">You Send</label>
+        <div class="flex items-center space-x-2">
+          <input id="sendAmount" type="number" pattern="[0-9]*" value="0.00" class="w-full bg-gray-600 rounded-lg p-2 text-white text-sm" />
+          <select id="sendMethodCurrency" class="bg-gray-600 rounded-lg p-2 text-white text-sm">
+            <option value="Select Currency" data-i18n="selectCurrency">Select Currency</option>
+            <option value="Muse wallet - USD">💵 Muse wallet - USD</option>
+            <option value="Orange Cash - EGP">📱 Orange Cash - EGP</option>
+            <option value="Payeer - USD">💵 Payeer - USD</option>
+            <option value="Payeer - RUB">🇷🇺 Payeer - RUB</option>
+            <option value="Vodafone Cash - EGP">📱 Vodafone Cash - EGP</option>
+            <option value="Binance pay - USDT">💰 Binance pay - USDT</option>
+            <option value="BYBIT - USDT">💰 BYBIT - USDT</option>
+            <option value="Cash Wallet - EGP">📱 Cash Wallet - EGP</option>
+            <option value="Etisalat Cash - EGP">📱 Etisalat Cash - EGP</option>
+            <option value="Telegram - USD">📱 Telegram - USD</option>
+            <option value="Telegram - EGP">📱 Telegram - EGP</option>
+            <option value="Telegram - USDT">📱 Telegram - USDT</option>
+            <option value="Telegram - RUB">📱 Telegram - RUB</option>
+          </select>
+        </div>
+        <div class="flex justify-between mt-1 text-xs">
+          <span data-i18n="min">Min: <span id="sendMin">0.00</span></span>
+          <span data-i18n="max">Max: <span id="sendMax">0.00</span></span>
+        </div>
+      </div>
+
+      <!-- You Get -->
+      <div class="mb-3">
+        <label class="block text-xs mb-1" data-i18n="youGet">Your Get</label>
+        <div class="flex items-center space-x-2">
+          <input id="getAmount" type="number" value="0.00" class="w-full bg-gray-600 rounded-lg p-2 text-white text-sm" readonly />
+          <select id="getMethodCurrency" class="bg-gray-600 rounded-lg p-2 text-white text-sm">
+            <option value="Select Currency" data-i18n="selectCurrency">Select Currency</option>
+            <option value="Muse wallet - USD">💵 Muse wallet - USD</option>
+            <option value="Orange Cash - EGP">📱 Orange Cash - EGP</option>
+            <option value="Payeer - USD">💵 Payeer - USD</option>
+            <option value="Payeer - RUB">🇷🇺 Payeer - RUB</option>
+            <option value="Vodafone Cash - EGP">📱 Vodafone Cash - EGP</option>
+            <option value="Binance pay - USDT">💰 Binance pay - USDT</option>
+            <option value="BYBIT - USDT">💰 BYBIT - USDT</option>
+            <option value="Cash Wallet - EGP">📱 Cash Wallet - EGP</option>
+            <option value="Etisalat Cash - EGP">📱 Etisalat Cash - EGP</option>
+            <option value="Telegram - USD">📱 Telegram - USD</option>
+            <option value="Telegram - EGP">📱 Telegram - EGP</option>
+            <option value="Telegram - USDT">📱 Telegram - USDT</option>
+            <option value="Telegram - RUB">📱 Telegram - RUB</option>
+          </select>
+        </div>
+        <div class="flex justify-between mt-1 text-xs">
+          <span data-i18n="min">Min: <span id="getMin">0.00</span></span>
+          <span data-i18n="max">Max: <span id="getMax">0.00</span></span>
+        </div>
+        <!-- Transaction Fees -->
+        <div class="mt-2 text-xs text-gray-400">
+          <p data-i18n="transactionFees">Transaction Fees (1%): <span id="transactionFees">0.00</span></p>
+          <p data-i18n="finalAmount">Final Amount: <span id="finalAmount">0.00</span></p>
+        </div>
+      </div>
+
+      <!-- Exchange Rate -->
+      <div class="mb-3">
+        <button id="exchangeRateBtn" class="w-full bg-red-600 text-white py-2 rounded-lg text-sm" data-i18n="exchangeRateBtn">Exchange Rate</button>
+        <p id="exchangeRate" class="text-center mt-2 text-pink-400 text-sm" data-i18n="selectCurrencies">Select currencies to see the rate</p>
+      </div>
+
+      <!-- Save as Favorite and Exchange Now -->
+      <div class="flex justify-between mb-3">
+        <button id="saveFavorite" class="w-[48%] bg-gray-700 text-white py-2 rounded-lg text-sm flex items-center justify-center">
+          <span class="mr-1">⭐</span> <span data-i18n="saveFavorite">Save as Favorite</span>
+        </button>
+        <button id="exchangeNow" class="w-[48%] bg-red-600 text-white py-2 rounded-lg text-sm flex items-center justify-center">
+          <span class="mr-1">🚀</span> <span data-i18n="exchangeNow">Exchange Now</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Payment Page Section -->
+  <section id="paymentSection" class="px-4 hidden section-transition">
+    <h2 class="text-2xl text-blue-300 text-center mb-3" data-i18n="completePayment">Complete Your Payment</h2>
+    <div class="bg-gray-800 rounded-lg p-4 shadow-lg">
+      <!-- Send Amount Details -->
+      <div class="mb-3">
+        <h3 class="text-base font-bold" data-i18n="pleaseSend">Please Send:</h3>
+        <p id="paymentSendAmount" class="text-orange-500 text-sm"></p>
+        <p id="paymentSendMethod" class="text-gray-400 text-sm"></p>
+        <p class="mt-1 text-sm" data-i18n="toAccount">To the following account:</p>
+        <p id="paymentAccountNumber" class="text-white font-mono bg-gray-600 p-2 rounded-lg text-sm"></p>
+      </div>
+
+      <!-- Receive Account Input -->
+      <div class="mb-3">
+        <label class="block text-xs mb-1" data-i18n="receiveAccountLabel">Your Account to Receive Funds:</label>
+        <input id="receiveAccount" type="text" placeholder="Enter your account number or email" class="w-full bg-gray-600 rounded-lg p-2 text-white text-sm" />
+        <p id="receiveAccountError" class="error-message" data-i18n="receiveAccountError">Please enter your account number to receive funds.</p>
+        <p id="receiveMethod" class="text-gray-400 mt-1 text-sm"></p>
+      </div>
+
+      <!-- Upload Payment Screenshot -->
+      <div class="mb-3">
+        <label class="block text-xs mb-1" data-i18n="uploadScreenshot">Upload Payment Screenshot:</label>
+        <input id="paymentScreenshot" type="file" accept="image/*" class="w-full bg-gray-600 rounded-lg p-2 text-white text-sm" />
+        <p id="paymentScreenshotError" class="error-message" data-i18n="uploadScreenshotError">Please upload a screenshot of your payment.</p>
+      </div>
+
+      <!-- Review Message -->
+      <div class="mb-3">
+        <p class="text-center text-xs text-gray-400" data-i18n="reviewMessage">Your transaction will be reviewed within 1 to 20 minutes. Typically, it takes around 10 minutes.</p>
+      </div>
+
+      <!-- Submit Payment -->
+      <button id="submitPayment" class="w-full bg-red-600 text-white py-2 rounded-lg text-sm" data-i18n="submitPayment">Submit Payment</button>
+    </div>
+  </section>
+
+  <!-- Payment Success Section -->
+  <section id="successSection" class="px-4 hidden section-transition">
+    <div class="bg-gray-800 rounded-lg p-4 shadow-lg text-center">
+      <div class="text-green-500 text-4xl mb-3 success-icon">✔</div>
+      <h3 class="text-xl text-white font-bold mb-2" data-i18n="successful">Successful</h3>
+      <p class="text-sm text-gray-400" data-i18n="successMessage">Your payment will be reviewed and confirmed soon.</p>
+    </div>
+  </section>
+
+  <!-- Error Section -->
+  <section id="errorSection" class="px-4 hidden section-transition">
+    <div class="bg-gray-800 rounded-lg p-4 shadow-lg text-center">
+      <div class="text-red-500 text-4xl mb-3">❌</div>
+      <h3 class="text-xl text-white font-bold mb-2" data-i18n="errorTitle">An Error Occurred</h3>
+      <p class="text-sm text-gray-400" data-i18n="errorMessage">Something went wrong. Please try again later.</p>
+      <button id="backToExchange" class="mt-3 bg-red-600 text-white py-2 px-4 rounded-lg text-sm" data-i18n="backToExchange">Back to Exchange</button>
+    </div>
+  </section>
+
+  <!-- Track Your Exchange -->
+  <section id="trackSection" class="px-4 section-transition show">
+    <h2 class="text-2xl text-blue-300 text-center mb-3" data-i18n="trackExchange">Track Your Exchange</h2>
+    <div class="bg-gray-800 rounded-lg p-4 shadow-lg">
+      <input id="exchangeIdInput" type="text" placeholder="Your exchange ID" class="w-full bg-gray-600 rounded-lg p-2 mb-3 text-white text-sm" data-i18n-placeholder="exchangeIdPlaceholder" />
+      <button id="trackNowBtn" class="w-full bg-red-600 text-white py-2 rounded-lg text-sm flex items-center justify-center">
+        <span class="mr-1">🔍</span> <span data-i18n="trackNow">Track Now</span>
+      </button>
+      <div id="trackStatus" class="mt-2 text-sm text-gray-400 hidden">
+        <p id="trackStatusText" data-i18n="statusPending">Status: Pending</p>
+        <div class="progress-bar">
+          <div id="progress" class="progress" style="width: 0%;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest Exchanges -->
+  <section class="px-4">
+    <h2 class="text-2xl text-red-500 text-center mb-3" data-i18n="latestExchanges">Latest Exchanges</h2>
+    <div id="latestExchanges" class="space-y-3">
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">A</div>
+          <div>
+            <p class="font-bold text-sm">Ashraf Elsab</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">11 Apr 2025</p>
+          <p class="text-sm">3,000.00 EGP 🇪🇬 → 56.34 USD 💵</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">S</div>
+          <div>
+            <p class="font-bold text-sm">Sara Ahmed</p>
+            <p class="text-xs text-gray-400" data-i18n="premiumMember">Premium Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">12 Apr 2025</p>
+          <p class="text-sm">500.00 USD 💵 → 28,170.00 EGP 🇪🇬</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">K</div>
+          <div>
+            <p class="font-bold text-sm">Khaled Omar</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">10 Apr 2025</p>
+          <p class="text-sm">100.00 USDT 💰 → 9,600.00 RUB 🇷🇺</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">N</div>
+          <div>
+            <p class="font-bold text-sm">Noura Hassan</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">9 Apr 2025</p>
+          <p class="text-sm">1,000.00 EGP 🇪🇬 → 10.40 USD 💵</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">M</div>
+          <div>
+            <p class="font-bold text-sm">Mohamed Ali</p>
+            <p class="text-xs text-gray-400" data-i18n="premiumMember">Premium Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">8 Apr 2025</p>
+          <p class="text-sm">200.00 USD 💵 → 30,000.00 JPY 🇯🇵</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">H</div>
+          <div>
+            <p class="font-bold text-sm">Hassan Youssef</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">7 Apr 2025</p>
+          <p class="text-sm">2,500.00 EGP 🇪🇬 → 45.00 USDT 💰</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">R</div>
+          <div>
+            <p class="font-bold text-sm">Rania Mahmoud</p>
+            <p class="text-xs text-gray-400" data-i18n="premiumMember">Premium Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">6 Apr 2025</p>
+          <p class="text-sm">300.00 USD 💵 → 28,800.00 RUB 🇷🇺</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">A</div>
+          <div>
+            <p class="font-bold text-sm">Amr Khaled</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">5 Apr 2025</p>
+          <p class="text-sm">50.00 USDT 💰 → 2,817.00 EGP 🇪🇬</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">L</div>
+          <div>
+            <p class="font-bold text-sm">Layla Samir</p>
+            <p class="text-xs text-gray-400" data-i18n="member">Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">4 Apr 2025</p>
+          <p class="text-sm">1,200.00 EGP 🇪🇬 → 12.48 USD 💵</p>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">Y</div>
+          <div>
+            <p class="font-bold text-sm">Yasser Nabil</p>
+            <p class="text-xs text-gray-400" data-i18n="premiumMember">Premium Member</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">3 Apr 2025</p>
+          <p class="text-sm">400.00 USD 💵 → 38,400.00 RUB 🇷🇺</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Customer Reviews -->
+  <section class="px-4">
+    <h2 class="text-2xl text-red-500 text-center mb-3" data-i18n="customerReviews">What Our Happy Customers Say</h2>
+    <div class="space-y-3">
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">M</div>
+            <div>
+              <p class="font-bold text-sm">Moustafa Ali</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">99</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★★</div>
+        <p class="text-sm" data-i18n="review1">Save, Fast and Cool :)</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">L</div>
+            <div>
+              <p class="font-bold text-sm">Laila Khaled</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">85</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★☆</div>
+        <p class="text-sm" data-i18n="review2">Very reliable service, the exchange was completed in less than 10 minutes!</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">A</div>
+            <div>
+              <p class="font-bold text-sm">Ahmed Samir</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">72</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★★</div>
+        <p class="text-sm" data-i18n="review3">Best exchanger I've used so far, highly recommend!</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">F</div>
+            <div>
+              <p class="font-bold text-sm">Fatima Youssef</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">65</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★☆</div>
+        <p class="text-sm" data-i18n="review4">Good rates and fast service, but the interface could be more user-friendly.</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">O</div>
+            <div>
+              <p class="font-bold text-sm">Omar Hany</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">53</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★★</div>
+        <p class="text-sm" data-i18n="review5">Super quick and hassle-free! Will definitely use again.</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">س</div>
+            <div>
+              <p class="font-bold text-sm">سامي عبدالله</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">48</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★★</div>
+        <p class="text-sm" data-i18n="review6">خدمة ممتازة وسريعة جدًا، أنصح بها بشدة!</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">ر</div>
+            <div>
+              <p class="font-bold text-sm">ريم محمد</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">42</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★☆</div>
+        <p class="text-sm" data-i18n="review7">التحويل كان سريع، لكن أتمنى تحسين واجهة المستخدم.</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="bg-gray-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">ي</div>
+            <div>
+              <p class="font-bold text-sm">ياسر أحمد</p>
+              <p class="text-xs text-orange-500" data-i18n="verifiedUser">Verified User</p>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400">39</p>
+        </div>
+        <div class="flex text-yellow-400 mb-2 text-sm">★★★★★</div>
+        <p class="text-sm" data-i18n="review8">تجربة رائعة، التحويل تم في أقل من 5 دقائق!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter Subscription -->
+  <section class="px-4">
+    <h2 class="text-2xl text-red-500 text-center mb-3" data-i18n="subscribeNewsletter">Subscribe Our Newsletter</h2>
+    <p class="text-center mb-3 text-sm" data-i18n="subscribeMessage">Subscribe Our Newsletter Now to get all the updates and Discount Offer News</p>
+    <div class="flex items-center bg-gray-800 rounded-lg p-2">
+      <span class="mr-2 text-sm">✉️</span>
+      <input id="newsletterEmail" type="email" placeholder="Enter email address" class="w-full bg-transparent outline-none text-sm" data-i18n-placeholder="emailPlaceholder" />
+      <button id="subscribeBtn" class="ml-2 bg-red-600 text-white py-1 px-3 rounded-lg text-sm" data-i18n="subscribe">Subscribe</button>
+    </div>
+  </section>
+
+  <!-- Common Exchanges -->
+  <section class="px-4 py-6">
+    <h2 class="text-2xl text-red-500 text-center mb-3" data-i18n="commonExchanges">Common Exchanges</h2>
+    <div class="space-y-3">
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="text-sm">USD 💵 → EGP 🇪🇬</div>
+        <div class="text-sm text-gray-400" id="common-usd-egp">Loading...</div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="text-sm">EGP 🇪🇬 → USDT 💰</div>
+        <div class="text-sm text-gray-400" id="common-egp-usdt">Loading...</div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 flex justify-between items-center">
+        <div class="text-sm">USDT 💰 → RUB 🇷🇺</div>
+        <div class="text-sm text-gray-400" id="common-usdt-rub">Loading...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JavaScript -->
+  <script>
+    // Translation Object
+    const translations = {
+      en: {
+        headerTitle: 'SPEEDY <span class="text-red-500">EXCHANGER</span>',
+        fasterExchange: 'faster exchange on the world',
+        mainExchange: 'Main Exchange',
+        favoriteExchange: 'Favorite Exchange',
+        youSend: 'You Send',
+        youGet: 'Your Get',
+        selectCurrency: 'Select Currency',
+        min: 'Min:',
+        max: 'Max:',
+        transactionFees: 'Transaction Fees (1%):',
+        finalAmount: 'Final Amount:',
+        exchangeRateBtn: 'Exchange Rate',
+        selectCurrencies: 'Select currencies to see the rate',
+        saveFavorite: 'Save as Favorite',
+        exchangeNow: 'Exchange Now',
+        completePayment: 'Complete Your Payment',
+        pleaseSend: 'Please Send:',
+        toAccount: 'To the following account:',
+        receiveAccountLabel: 'Your Account to Receive Funds:',
+        receiveAccountError: 'Please enter your account number to receive funds.',
+        uploadScreenshot: 'Upload Payment Screenshot:',
+        uploadScreenshotError: 'Please upload a screenshot of your payment.',
+        reviewMessage: 'Your transaction will be reviewed within 1 to 20 minutes. Typically, it takes around 10 minutes.',
+        submitPayment: 'Submit Payment',
+        successful: 'Successful',
+        successMessage: 'Your payment will be reviewed and confirmed soon.',
+        errorTitle: 'An Error Occurred',
+        errorMessage: 'Something went wrong. Please try again later.',
+        backToExchange: 'Back to Exchange',
+        trackExchange: 'Track Your Exchange',
+        exchangeIdPlaceholder: 'Your exchange ID',
+        trackNow: 'Track Now',
+        statusPending: 'Status: Pending',
+        statusUnderReview: 'Status: Under Review',
+        statusProcessing: 'Status: Processing',
+        statusCompleted: 'Status: Completed',
+        latestExchanges: 'Latest Exchanges',
+        member: 'Member',
+        premiumMember: 'Premium Member',
+        customerReviews: 'What Our Happy Customers Say',
+        verifiedUser: 'Verified User',
+        review1: 'Save, Fast and Cool :)',
+        review2: 'Very reliable service, the exchange was completed in less than 10 minutes!',
+        review3: 'Best exchanger I\'ve used so far, highly recommend!',
+        review4: 'Good rates and fast service, but the interface could be more user-friendly.',
+        review5: 'Super quick and hassle-free! Will definitely use again.',
+        review6: 'Excellent and very fast service, I highly recommend it!',
+        review7: 'The transfer was quick, but I hope the user interface improves.',
+        review8: 'Great experience, the transfer was completed in less than 5 minutes!',
+        subscribeNewsletter: 'Subscribe Our Newsletter',
+        subscribeMessage: 'Subscribe Our Newsletter Now to get all the updates and Discount Offer News',
+        emailPlaceholder: 'Enter email address',
+        subscribe: 'Subscribe',
+        selectCurrencyError: 'Please select valid payment methods for both sending and receiving.',
+        amountError: 'Please enter a valid amount to send.',
+        sameCurrencyError: 'Please select different currencies.',
+        exchangeIdError: 'Please enter your exchange ID.',
+        invalidAccountError: 'Please enter a valid account number or email.',
+        subscribedMessage: 'Thank you for subscribing!',
+        commonExchanges: 'Common Exchanges',
+        apiError: 'Failed to fetch exchange rates. Using default rates.'
+      },
+      ar: {
+        headerTitle: 'سبيدي <span class="text-red-500">إكسشينجر</span>',
+        fasterExchange: 'أسرع تبادل في العالم',
+        mainExchange: 'التبادل الرئيسي',
+        favoriteExchange: 'التبادل المفضل',
+        youSend: 'أنت ترسل',
+        youGet: 'أنت تستلم',
+        selectCurrency: 'اختر العملة',
+        min: 'الحد الأدنى:',
+        max: 'الحد الأقصى:',
+        transactionFees: 'رسوم المعاملة (1%):',
+        finalAmount: 'المبلغ النهائي:',
+        exchangeRateBtn: 'سعر الصرف',
+        selectCurrencies: 'اختر العملات لرؤية السعر',
+        saveFavorite: 'حفظ كمفضل',
+        exchangeNow: 'تبادل الآن',
+        completePayment: 'أكمل دفعك',
+        pleaseSend: 'يرجى الإرسال:',
+        toAccount: 'إلى الحساب التالي:',
+        receiveAccountLabel: 'حسابك لاستلام الأموال:',
+        receiveAccountError: 'يرجى إدخال رقم حسابك لاستلام الأموال.',
+        uploadScreenshot: 'رفع لقطة شاشة للدفع:',
+        uploadScreenshotError: 'يرجى رفع لقطة شاشة لدفعك.',
+        reviewMessage: 'سيتم مراجعة معاملتك خلال 1 إلى 20 دقيقة. عادةً، يستغرق الأمر حوالي 10 دقائق.',
+        submitPayment: 'إرسال الدفع',
+        successful: 'نجاح',
+        successMessage: 'سيتم مراجعة وتأكيد دفعك قريبًا.',
+        errorTitle: 'حدث خطأ',
+        errorMessage: 'حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقًا.',
+        backToExchange: 'العودة إلى التبادل',
+        trackExchange: 'تتبع تبادلك',
+        exchangeIdPlaceholder: 'معرف التبادل الخاص بك',
+        trackNow: 'تتبع الآن',
+        statusPending: 'الحالة: قيد الانتظار',
+        statusUnderReview: 'الحالة: تحت المراجعة',
+        statusProcessing: 'الحالة: قيد المعالجة',
+        statusCompleted: 'الحالة: مكتمل',
+        latestExchanges: 'أحدث التبادلات',
+        member: 'عضو',
+        premiumMember: 'عضو مميز',
+        customerReviews: 'ما يقوله عملاؤنا السعداء',
+        verifiedUser: 'مستخدم موثق',
+        review1: 'آمن وسريع ورائع :)',
+        review2: 'خدمة موثوقة جدًا، تم إكمال التبادل في أقل من 10 دقائق!',
+        review3: 'أفضل مبادل استخدمته حتى الآن، أوصي به بشدة!',
+        review4: 'أسعار جيدة وخدمة سريعة، لكن الواجهة يمكن أن تكون أكثر سهولة.',
+        review5: 'سريع جدًا وبدون متاعب! سأستخدمه مرة أخرى بالتأكيد.',
+        review6: 'خدمة ممتازة وسريعة جدًا، أنصح بها بشدة!',
+        review7: 'التحويل كان سريع، لكن أتمنى تحسين واجهة المستخدم.',
+        review8: 'تجربة رائعة، تم التحويل في أقل من 5 دقائق!',
+        subscribeNewsletter: 'اشترك في نشرتنا الإخبارية',
+        subscribeMessage: 'اشترك في نشرتنا الإخبارية الآن للحصول على كل التحديثات وأخبار العروض المخفضة',
+        emailPlaceholder: 'أدخل عنوان البريد الإلكتروني',
+        subscribe: 'اشترك',
+        selectCurrencyError: 'يرجى اختيار طرق دفع صالحة للإرسال والاستلام.',
+        amountError: 'يرجى إدخال مبلغ صالح للإرسال.',
+        sameCurrencyError: 'يرجى اختيار عملات مختلفة.',
+        exchangeIdError: 'يرجى إدخال معرف التبادل الخاص بك.',
+        invalidAccountError: 'يرجى إدخال رقم حساب أو بريد إلكتروني صالح.',
+        subscribedMessage: 'شكرًا لاشتراكك!',
+        commonExchanges: 'التحويلات الشائعة',
+        apiError: 'فشل في جلب أسعار الصرف. يتم استخدام الأسعار الافتراضية.'
+      }
+    };
+
+    // Language Toggle
+    let currentLang = 'en';
+    const languageToggle = document.getElementById('languageToggle');
+    languageToggle.addEventListener('click', () => {
+      currentLang = currentLang === 'en' ? 'ar' : 'en';
+      languageToggle.textContent = currentLang === 'en' ? 'English' : 'العربية';
+      document.getElementById('htmlRoot').setAttribute('dir', currentLang === 'en' ? 'ltr' : 'rtl');
+      updateLanguage();
+    });
+
+    function updateLanguage() {
+      document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        element.innerHTML = translations[currentLang][key] || element.innerHTML;
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        element.setAttribute('placeholder', translations[currentLang][key] || element.getAttribute('placeholder'));
+      });
+    }
+
+    // CoinGecko API Key and Setup
+    const COINGECKO_API_KEY = 'CG-EwhnQDVsGdhuNBo6mZFsouTA';
+    const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
+
+    // Mapping of currencies to CoinGecko IDs
+    const currencyToCoinGeckoId = {
+      USD: 'usd', // USD is not a coin, but we use it as a base
+      EGP: 'egp', // Not directly supported, we'll calculate indirectly via USD
+      USDT: 'tether',
+      RUB: 'rub'  // Not directly supported, we'll calculate indirectly via USD
+    };
+
+    // Exchange Rates (Dynamic, fetched from CoinGecko)
+    let exchangeRates = {
+      USD: { EGP: 0, USDT: 0, RUB: 0, USD: 1.00 },
+      EGP: { USD: 0, USDT: 0, RUB: 0, EGP: 1.00 },
+      USDT: { USD: 0, EGP: 0, RUB: 0, USDT: 1.00 },
+      RUB: { USD: 0, EGP: 0, USDT: 0, RUB: 1.00 }
+    };
+
+    // Default rates in case API fails
+    const defaultExchangeRates = {
+      USD: { EGP: 56.34, USDT: 1.00, RUB: 96.00, USD: 1.00 },
+      EGP: { USD: 0.0177, USDT: 0.0177, RUB: 1.70, EGP: 1.00 },
+      USDT: { USD: 1.00, EGP: 56.34, RUB: 96.00, USDT: 1.00 },
+      RUB: { USD: 0.0104, EGP: 0.59, USDT: 0.0104, RUB: 1.00 }
+    };
+
+    // Fetch Exchange Rates from CoinGecko
+    async function fetchExchangeRates() {
+      try {
+        const ids = 'tether'; // We only need USDT (tether) as a coin
+        const vsCurrencies = 'usd,egp,rub'; // We want prices in USD, EGP, RUB
+        const response = await fetch(`${COINGECKO_API_URL}?ids=${ids}&vs_currencies=${vsCurrencies}&x_cg_api_key=${COINGECKO_API_KEY}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch exchange rates');
+        }
+
+        const data = await response.json();
+        const tether = data['tether'];
+
+        // Extract rates
+        const usdtToUsd = tether.usd || 1; // USDT to USD
+        const usdtToEgp = tether.egp || 56.34; // USDT to EGP (fallback if not supported)
+        const usdtToRub = tether.rub || 96.00; // USDT to RUB (fallback if not supported)
+
+        // USD rates
+        exchangeRates.USD.USDT = 1 / usdtToUsd; // USD to USDT
+        exchangeRates.USD.EGP = usdtToEgp / usdtToUsd; // USD to EGP
+        exchangeRates.USD.RUB = usdtToRub / usdtToUsd; // USD to RUB
+        exchangeRates.USD.USD = 1;
+
+        // EGP rates
+        exchangeRates.EGP.USD = 1 / exchangeRates.USD.EGP; // EGP to USD
+        exchangeRates.EGP.USDT = usdtToEgp / usdtToUsd; // EGP to USDT
+        exchangeRates.EGP.RUB = usdtToRub / usdtToEgp; // EGP to RUB
+        exchangeRates.EGP.EGP = 1;
+
+        // USDT rates
+        exchangeRates.USDT.USD = usdtToUsd; // USDT to USD
+        exchangeRates.USDT.EGP = usdtToEgp; // USDT to EGP
+        exchangeRates.USDT.RUB = usdtToRub; // USDT to RUB
+        exchangeRates.USDT.USDT = 1;
+
+        // RUB rates
+        exchangeRates.RUB.USD = 1 / exchangeRates.USD.RUB; // RUB to USD
+        exchangeRates.RUB.EGP = 1 / exchangeRates.EGP.RUB; // RUB to EGP
+        exchangeRates.RUB.USDT = 1 / usdtToRub; // RUB to USDT
+        exchangeRates.RUB.RUB = 1;
+
+        // Update Common Exchanges section
+        document.getElementById('common-usd-egp').textContent = `1 USD = ${exchangeRates.USD.EGP.toFixed(2)} EGP`;
+        document.getElementById('common-egp-usdt').textContent = `1 EGP = ${exchangeRates.EGP.USDT.toFixed(4)} USDT`;
+        document.getElementById('common-usdt-rub').textContent = `1 USDT = ${exchangeRates.USDT.RUB.toFixed(2)} RUB`;
+
+        // Update the exchange UI
+        updateExchange();
+      } catch (error) {
+        console.error('Error fetching exchange rates:', error);
+        showToast('apiError');
+        exchangeRates = { ...defaultExchangeRates };
+        // Update Common Exchanges with default rates
+        document.getElementById('common-usd-egp').textContent = `1 USD = ${exchangeRates.USD.EGP.toFixed(2)} EGP`;
+        document.getElementById('common-egp-usdt').textContent = `1 EGP = ${exchangeRates.EGP.USDT.toFixed(4)} USDT`;
+        document.getElementById('common-usdt-rub').textContent = `1 USDT = ${exchangeRates.USDT.RUB.toFixed(2)} RUB`;
+        updateExchange();
+      }
+    }
+
+    // Fetch rates on page load and every 5 minutes
+    fetchExchangeRates();
+    setInterval(fetchExchangeRates, 5 * 60 * 1000); // 5 minutes
+
+    const methodCurrencies = {
+      "Muse wallet - USD": "USD",
+      "Orange Cash - EGP": "EGP",
+      "Payeer - USD": "USD",
+      "Payeer - RUB": "RUB",
+      "Vodafone Cash - EGP": "EGP",
+      "Binance pay - USDT": "USDT",
+      "BYBIT - USDT": "USDT",
+      "Cash Wallet - EGP": "EGP",
+      "Etisalat Cash - EGP": "EGP",
+      "Telegram - USD": "USD",
+      "Telegram - EGP": "EGP",
+      "Telegram - USDT": "USDT",
+      "Telegram - RUB": "RUB"
+    };
+
+    const dummyAccounts = {
+      "Muse wallet - USD": "MUSE456789123",
+      "Orange Cash - EGP": "01061781445",
+      "Payeer - USD": "P1130544382",
+      "Payeer - RUB": "P1130544382",
+      "Vodafone Cash - EGP": "01061781445",
+      "Binance pay - USDT": "BINANCE789456123",
+      "BYBIT - USDT": "0x1B1468F18Ed86cB680e5A47D8e706D1464D243ED",
+      "Cash Wallet - EGP": "0x88Ea63730a9b4C6228901DeEDC7e9834dd544490",
+      "Etisalat Cash - EGP": "01061781445",
+      "Telegram - USD": "TVW2JZiszzHr4EyrbRAtCbU4cN9d13UvJN",
+      "Telegram - EGP": "TVW2JZiszzHr4EyrbRAtCbU4cN9d13UvJN",
+      "Telegram - USDT": "TVW2JZiszzHr4EyrbRAtCbU4cN9d13UvJN",
+      "Telegram - RUB": "TVW2JZiszzHr4EyrbRAtCbU4cN9d13UvJN"
+    };
+
+    const sendAmountInput = document.getElementById('sendAmount');
+    const sendMethodCurrencySelect = document.getElementById('sendMethodCurrency');
+    const getAmountInput = document.getElementById('getAmount');
+    const getMethodCurrencySelect = document.getElementById('getMethodCurrency');
+    const transactionFees = document.getElementById('transactionFees');
+    const finalAmount = document.getElementById('finalAmount');
+    const exchangeRateBtn = document.getElementById('exchangeRateBtn');
+    const exchangeRateText = document.getElementById('exchangeRate');
+    const saveFavoriteBtn = document.getElementById('saveFavorite');
+    const exchangeNowBtn = document.getElementById('exchangeNow');
+    const exchangeSection = document.getElementById('exchangeSection');
+    const paymentSection = document.getElementById('paymentSection');
+    const successSection = document.getElementById('successSection');
+    const errorSection = document.getElementById('errorSection');
+    const trackSection = document.getElementById('trackSection');
+    const paymentSendAmount = document.getElementById('paymentSendAmount');
+    const paymentSendMethod = document.getElementById('paymentSendMethod');
+    const paymentAccountNumber = document.getElementById('paymentAccountNumber');
+    const receiveMethod = document.getElementById('receiveMethod');
+    const receiveAccountInput = document.getElementById('receiveAccount');
+    const paymentScreenshotInput = document.getElementById('paymentScreenshot');
+    const receiveAccountError = document.getElementById('receiveAccountError');
+    const paymentScreenshotError = document.getElementById('paymentScreenshotError');
+    const submitPaymentBtn = document.getElementById('submitPayment');
+    const backToExchangeBtn = document.getElementById('backToExchange');
+    const exchangeIdInput = document.getElementById('exchangeIdInput');
+    const trackNowBtn = document.getElementById('trackNowBtn');
+    const trackStatus = document.getElementById('trackStatus');
+    const trackStatusText = document.getElementById('trackStatusText');
+    const progress = document.getElementById('progress');
+    const latestExchangesContainer = document.getElementById('latestExchanges');
+    const mainExchangeTab = document.getElementById('mainExchangeTab');
+    const favoriteExchangeTab = document.getElementById('favoriteExchangeTab');
+    const newsletterEmail = document.getElementById('newsletterEmail');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+
+    // Toast Notification Function
+    function showToast(messageKey, isSuccess = false) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${isSuccess ? 'success-toast' : ''}`;
+      toast.textContent = translations[currentLang][messageKey] || messageKey;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 100);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.remove();
+      }, 3000);
+    }
+
+    // Transition Between Sections
+    function showSection(sectionToShow) {
+      [exchangeSection, paymentSection, successSection, errorSection, trackSection].forEach(section => {
+        section.classList.add('hidden');
+        section.classList.remove('show');
+      });
+      sectionToShow.classList.remove('hidden');
+      setTimeout(() => sectionToShow.classList.add('show'), 50);
+    }
+
+    // Load Saved Preferences
+    function loadPreferences() {
+      const savedSendMethod = localStorage.getItem('savedSendMethod');
+      const savedGetMethod = localStorage.getItem('savedGetMethod');
+      if (savedSendMethod) sendMethodCurrencySelect.value = savedSendMethod;
+      if (savedGetMethod) getMethodCurrencySelect.value = savedGetMethod;
+      updateExchange();
+    }
+
+    function getCurrencyFromMethod(methodCurrency) {
+      return methodCurrencies[methodCurrency] || "";
+    }
+
+    function updateExchange() {
+      const sendAmount = parseFloat(sendAmountInput.value) || 0;
+      const sendMethodCurrency = sendMethodCurrencySelect.value;
+      const getMethodCurrency = getMethodCurrencySelect.value;
+
+      const sendCurrency = getCurrencyFromMethod(sendMethodCurrency);
+      const getCurrency = getCurrencyFromMethod(getMethodCurrency);
+
+      // Update the "You Get" amount
+      if (sendCurrency && getCurrency && sendCurrency === getCurrency) {
+        getAmountInput.value = sendAmount.toFixed(2);
+      } else if (sendCurrency && getCurrency) {
+        const rate = exchangeRates[sendCurrency][getCurrency];
+        const getAmount = sendAmount * rate;
+        getAmountInput.value = getAmount.toFixed(2);
+
+        // Calculate Transaction Fees (1%)
+        const fee = getAmount * 0.01;
+        const final = getAmount - fee;
+        transactionFees.textContent = fee.toFixed(2);
+        finalAmount.textContent = final.toFixed(2);
+      } else {
+        getAmountInput.value = "0.00";
+        transactionFees.textContent = "0.00";
+        finalAmount.textContent = "0.00";
+      }
+
+      // Update the exchange rate display
+      if (sendCurrency && getCurrency && sendCurrency !== getCurrency) {
+        const rate = exchangeRates[sendCurrency][getCurrency];
+        exchangeRateText.textContent = `1 ${sendCurrency} = ${rate.toFixed(2)} ${getCurrency}`;
+      } else if (sendCurrency && getCurrency) {
+        showToast('sameCurrencyError');
+        exchangeRateText.textContent = translations[currentLang].selectCurrencies;
+      } else {
+        exchangeRateText.textContent = translations[currentLang].selectCurrencies;
+      }
+    }
+
+    sendAmountInput.addEventListener('input', updateExchange);
+    sendMethodCurrencySelect.addEventListener('change', updateExchange);
+    getMethodCurrencySelect.addEventListener('change', updateExchange);
+
+    // Save as Favorite
+    saveFavoriteBtn.addEventListener('click', () => {
+      const sendMethod = sendMethodCurrencySelect.value;
+      const getMethod = getMethodCurrencySelect.value;
+      if (sendMethod !== "Select Currency" && getMethod !== "Select Currency") {
+        localStorage.setItem('savedSendMethod', sendMethod);
+        localStorage.setItem('savedGetMethod', getMethod);
+        showToast('Saved as favorite!', true);
+      } else {
+        showToast('selectCurrencyError');
+      }
+    });
+
+    // Favorite Exchange Tab
+    favoriteExchangeTab.addEventListener('click', () => {
+      loadPreferences();
+      mainExchangeTab.classList.remove('bg-orange-500');
+      mainExchangeTab.classList.add('bg-gray-700');
+      favoriteExchangeTab.classList.add('bg-orange-500');
+      favoriteExchangeTab.classList.remove('bg-gray-700');
+    });
+
+    mainExchangeTab.addEventListener('click', () => {
+      mainExchangeTab.classList.add('bg-orange-500');
+      mainExchangeTab.classList.remove('bg-gray-700');
+      favoriteExchangeTab.classList.remove('bg-orange-500');
+      favoriteExchangeTab.classList.add('bg-gray-700');
+    });
+
+    exchangeNowBtn.addEventListener('click', () => {
+      const sendMethodCurrency = sendMethodCurrencySelect.value;
+      const getMethodCurrency = getMethodCurrencySelect.value;
+      const sendAmount = parseFloat(sendAmountInput.value) || 0;
+      const getAmount = parseFloat(getAmountInput.value) || 0;
+
+      if (sendMethodCurrency === "Select Currency" || getMethodCurrency === "Select Currency") {
+        showToast('selectCurrencyError');
+        return;
+      }
+
+      if (sendAmount <= 0) {
+        showToast('amountError');
+        return;
+      }
+
+      // Show payment section
+      showSection(paymentSection);
+
+      // Populate payment details
+      const sendCurrency = getCurrencyFromMethod(sendMethodCurrency);
+      paymentSendAmount.textContent = `${sendAmount.toFixed(2)} ${sendCurrency}`;
+      paymentSendMethod.textContent = `${translations[currentLang].via || 'Via'}: ${sendMethodCurrency}`;
+      paymentAccountNumber.textContent = dummyAccounts[sendMethodCurrency] || "Account not available";
+      receiveMethod.textContent = `${translations[currentLang].receivingVia || 'Receiving via'}: ${getMethodCurrency}`;
+    });
+
+    // Validate Account Input
+    function validateAccount(account, method) {
+      if (method.includes('Telegram')) {
+        return account.startsWith('@');
+      }
+      const accountRegex = /^[0-9a-zA-Z]+$/;
+      return accountRegex.test(account);
+    }
+
+    submitPaymentBtn.addEventListener('click', () => {
+      const receiveAccount = receiveAccountInput.value.trim();
+      const screenshotFile = paymentScreenshotInput.files[0];
+      const getMethodCurrency = getMethodCurrencySelect.value;
+      let hasError = false;
+
+      // Reset error messages
+      receiveAccountError.style.display = 'none';
+      paymentScreenshotError.style.display = 'none';
+
+      // Validate inputs
+      if (!receiveAccount || !validateAccount(receiveAccount, getMethodCurrency)) {
+        receiveAccountError.style.display = 'block';
+        showToast('invalidAccountError');
+        hasError = true;
+      }
+
+      if (!screenshotFile) {
+        paymentScreenshotError.style.display = 'block';
+        hasError = true;
+      }
+
+      if (hasError) {
+        return;
+      }
+
+      // Simulate file upload error (for demonstration)
+      if (Math.random() > 0.8) {
+        showSection(errorSection);
+        return;
+      }
+
+      // Show success section
+      showSection(successSection);
+
+      // After 3 seconds, return to main page
+      setTimeout(() => {
+        showSection(exchangeSection);
+        trackSection.classList.remove('hidden');
+        trackSection.classList.add('show');
+        sendAmountInput.value = "0.00";
+        getAmountInput.value = "0.00";
+        sendMethodCurrencySelect.value = "Select Currency";
+        getMethodCurrencySelect.value = "Select Currency";
+        receiveAccountInput.value = "";
+        paymentScreenshotInput.value = "";
+        transactionFees.textContent = "0.00";
+        finalAmount.textContent = "0.00";
+      }, 3000);
+    });
+
+    // Clear error message when user starts typing
+    receiveAccountInput.addEventListener('input', () => {
+      receiveAccountError.style.display = 'none';
+    });
+
+    paymentScreenshotInput.addEventListener('change', () => {
+      paymentScreenshotError.style.display = 'none';
+    });
+
+    // Back to Exchange from Error
+    backToExchangeBtn.addEventListener('click', () => {
+      showSection(exchangeSection);
+      trackSection.classList.remove('hidden');
+      trackSection.classList.add('show');
+    });
+
+    // Track Status with Progress
+    trackNowBtn.addEventListener('click', () => {
+      const exchangeId = exchangeIdInput.value.trim();
+      if (!exchangeId) {
+        showToast('exchangeIdError');
+        return;
+      }
+
+      trackStatus.classList.remove('hidden');
+      trackStatusText.setAttribute('data-i18n', 'statusPending');
+      updateLanguage();
+      progress.style.width = '0%';
+
+      let step = 0;
+      const steps = [
+        { status: 'statusPending', progress: 0 },
+        { status: 'statusUnderReview', progress: 25 },
+        { status: 'statusProcessing', progress: 75 },
+        { status: 'statusCompleted', progress: 100 }
+      ];
+
+      const interval = setInterval(() => {
+        if (step >= steps.length) {
+          clearInterval(interval);
+          return;
+        }
+        trackStatusText.setAttribute('data-i18n', steps[step].status);
+        updateLanguage();
+        progress.style.width = `${steps[step].progress}%`;
+        step++;
+      }, 2000);
+    });
+
+    // Dynamic Latest Exchanges
+    const firstNames = ["Ali", "Mona", "Hassan", "Fatima", "Omar", "Aya", "Youssef", "Nadia", "Khaled", "Sara"];
+    const lastNames = ["Mohamed", "Ahmed", "Hussein", "Sayed", "Gamal", "Eid", "Fathy", "Mostafa", "Ibrahim", "Salem"];
+    const currencies = ["USD", "EGP", "USDT", "RUB"];
+    const currencyIcons = {
+      USD: "💵",
+      EGP: "🇪🇬",
+      USDT: "💰",
+      RUB: "🇷🇺",
+      JPY: "🇯🇵"
+    };
+    const membershipStatuses = ["member", "premiumMember"];
+
+    function getRandomDate() {
+      const start = new Date("2025-04-01");
+      const end = new Date("2025-04-14");
+      const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+      return randomDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function getRandomAmount(min, max) {
+      return (Math.random() * (max - min) + min).toFixed(2);
+    }
+
+    function addNewTransaction() {
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+      const fullName = `${firstName} ${lastName}`;
+      const initial = firstName.charAt(0);
+      const membership = membershipStatuses[Math.floor(Math.random() * membershipStatuses.length)];
+      const date = getRandomDate();
+
+      let sendCurrency, getCurrency;
+      do {
+        sendCurrency = currencies[Math.floor(Math.random() * currencies.length)];
+        getCurrency = currencies[Math.floor(Math.random() * currencies.length)];
+      } while (sendCurrency === getCurrency);
+
+      const sendAmount = getRandomAmount(50, 3000);
+      const rate = exchangeRates[sendCurrency][getCurrency];
+      const getAmount = (sendAmount * rate).toFixed(2);
+
+      const transactionDiv = document.createElement('div');
+      transactionDiv.className = 'bg-gray-800 rounded-lg p-4 flex justify-between items-center';
+      transactionDiv.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <div class="bg-red-600 rounded-full h-10 w-10 flex items-center justify-center text-sm">${initial}</div>
+          <div>
+            <p class="font-bold text-sm">${fullName}</p>
+            <p class="text-xs text-gray-400" data-i18n="${membership}">${translations[currentLang][membership]}</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs">${date}</p>
+          <p class="text-sm">${sendAmount} ${sendCurrency} ${currencyIcons[sendCurrency] || ''} → ${getAmount} ${getCurrency} ${currencyIcons[getCurrency] || ''}</p>
+        </div>
+      `;
+
+      latestExchangesContainer.insertBefore(transactionDiv, latestExchangesContainer.firstChild);
+
+      if (latestExchangesContainer.children.length > 10) {
+        latestExchangesContainer.removeChild(latestExchangesContainer.lastChild);
+      }
+
+      const delay = Math.random() * (15000 - 5000) + 5000;
+      setTimeout(addNewTransaction, delay);
+    }
+
+    addNewTransaction();
+
+    // Newsletter Subscription
+    subscribeBtn.addEventListener('click', () => {
+      const email = newsletterEmail.value.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('invalidAccountError');
+        return;
+      }
+      showToast('subscribedMessage', true);
+      newsletterEmail.value = '';
+    });
+
+    // Initial Load
+    loadPreferences();
+    updateLanguage();
+  </script>
+</body>
+</html>
