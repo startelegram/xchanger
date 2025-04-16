@@ -1,0 +1,1375 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row =>
+                    row.some(cell => cell !== '' && cell !== null && cell !== undefined)
+                );
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Hat Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #00ff99;
+            --secondary-color: #1e1e2f;
+            --bg-gradient: linear-gradient(135deg, #0f0f0f, #1a1a2e);
+            --text-color: #ffffff;
+            --input-bg: #2b2b3d;
+            --shadow-glow: 0 0 20px rgba(0, 255, 150, 0.3);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            font-family: 'Cairo', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            padding: 40px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.5s ease;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-container svg {
+            width: 50px;
+            height: 50px;
+            filter: drop-shadow(var(--shadow-glow));
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        .logo-container:hover svg {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 30px rgba(0, 255, 150, 0.5));
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-shadow: var(--shadow-glow);
+        }
+
+        .language-switcher {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            background: var(--secondary-color);
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: var(--shadow-glow);
+            transition: all 0.3s ease;
+        }
+
+        .language-switcher select {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1rem;
+            padding: 8px 25px 8px 15px;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .language-switcher select:focus {
+            outline: none;
+        }
+
+        .language-switcher::after {
+            content: '\f107';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: var(--primary-color);
+            position: absolute;
+            right: 10px;
+            pointer-events: none;
+        }
+
+        .card {
+            background: var(--secondary-color);
+            border-radius: 15px;
+            box-shadow: var(--shadow-glow);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 0 30px rgba(0, 255, 150, 0.5);
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--primary-color);
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-control,
+        .form-select {
+            background: var(--input-bg);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+            color: var(--text-color);
+            padding: 12px 15px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+            outline: none;
+        }
+
+        .form-group i {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+        }
+
+        .btn-custom {
+            background: var(--primary-color);
+            color: #000;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 12px 30px;
+            border: none;
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background: #00cc7a;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 255, 150, 0.7);
+        }
+
+        .btn-custom:active {
+            background: linear-gradient(to bottom, #00cc7a, #00994d);
+        }
+
+        .alert-info {
+            background: var(--input-bg);
+            border: 1px solid var(--primary-color);
+            color: var(--text-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .table-dark {
+            background: var(--input-bg);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-dark th,
+        .table-dark td {
+            border: none;
+            padding: 15px;
+            color: var(--text-color);
+        }
+
+        .table-dark th {
+            background: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .table-dark tr {
+            transition: background 0.2s ease;
+        }
+
+        .table-dark tr:hover {
+            background: rgba(0, 255, 150, 0.1);
+        }
+
+        .toast {
+            background: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 10px;
+        }
+
+        .currency-icon {
+            margin-left: 8px;
+            font-size: 1rem;
+        }
+
+        .currency-logo {
+            width: 20px;
+            height: 20px;
+            margin-left: 5px;
+            vertical-align: middle;
+            display: inline-block;
+        }
+
+        #payment-details {
+            display: none;
+        }
+
+        .error-page {
+            display: none;
+            text-align: center;
+            padding: 50px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .error-page h2 {
+            color: #ff4d4d;
+            font-size: 2rem;
+        }
+
+        .tooltip-text {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .service-status {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            background: #28a745;
+            color: white;
+        }
+
+        .progress {
+            height: 10px;
+            background: var(--input-bg);
+            border-radius: 5px;
+        }
+
+        .progress-bar {
+            background: var(--primary-color);
+        }
+
+        .chat-bubble {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .chat-window {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 300px;
+            background: var(--secondary-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow-glow);
+            display: none;
+        }
+
+        .chat-header {
+            background: var(--primary-color);
+            color: #000;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+            font-weight: 600;
+        }
+
+        .chat-body {
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 0 0 10px 10px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            box-shadow: 0 0 5px var(--primary-color);
+        }
+
+        .list-group-item {
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+        }
+
+        #landing-page {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #landing-page .landing-card {
+            background: rgba(30, 30, 47, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: var(--shadow-glow);
+            animation: slideIn 1s ease-out;
+        }
+
+        #landing-page h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+        }
+
+        #landing-page p {
+            font-size: 1.1rem;
+            color: #ddd;
+            margin-bottom: 30px;
+        }
+
+        #landing-page .btn-custom {
+            font-size: 1.2rem;
+            padding: 15px 50px;
+            animation: pulse 2s infinite;
+        }
+
+        #particles-js {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .visitor-stats {
+            display: none;
+            margin-top: 20px;
+            background: var(--secondary-color);
+            border-radius: 15px;
+            box-shadow: var(--shadow-glow);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .visitor-stats.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 150, 0.7); }
+            50% { box-shadow: 0 0 20px 10px rgba(0, 255, 150, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 150, 0); }
+        }
+
+        @media (max-width: 768px) {
+            .logo-container svg {
+                width: 40px;
+                height: 40px;
+            }
+
+            .logo-text {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+
+            .btn-custom {
+                width: 100%;
+                padding: 10px;
+            }
+
+            .chat-window {
+                width: 90%;
+            }
+
+            #landing-page .landing-card {
+                padding: 20px;
+                max-width: 90%;
+            }
+
+            #landing-page h1 {
+                font-size: 2rem;
+            }
+
+            #landing-page p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .logo-container svg {
+                width: 30px;
+                height: 30px;
+            }
+
+            .logo-text {
+                font-size: 1.2rem;
+            }
+
+            .form-group i {
+                left: 10px;
+            }
+
+            .table-dark th,
+            .table-dark td {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+        }
+
+        [lang="en"] {
+            direction: ltr;
+        }
+
+        [lang="en"] .form-group i {
+            left: auto;
+            right: 15px;
+        }
+
+        [lang="en"] .currency-icon,
+        [lang="en"] .currency-logo {
+            margin-left: 0;
+            margin-right: 5px;
+        }
+
+        [lang="en"] .section-title::after {
+            left: auto;
+            right: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .visitor-counter {
+            text-align: center;
+            padding: 20px;
+            margin: 40px auto;
+            background: var(--secondary-color);
+            border-radius: 15px;
+            box-shadow: var(--shadow-glow);
+            max-width: 300px;
+            animation: pulse 2s infinite;
+        }
+
+        .visitor-counter h3 {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .visitor-counter span {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Landing Page -->
+    <div id="landing-page">
+        <div id="particles-js"></div>
+        <div class="landing-card">
+            <h1>مرحبًا بك في Green Hat Platform</h1>
+            <p>The most trusted platform with unparalleled security and lightning-fast speed.</p>
+            <button class="btn btn-custom" onclick="showMainPanel()">Join Now</button>
+        </div>
+    </div>
+
+    <!-- Main Service Panel -->
+    <div id="main-panel" style="display: none;">
+        <div class="container">
+            <div class="header">
+                <div class="logo-container">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="hatGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00ff99;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#1e1e2f;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M20 70 Q50 30 80 70 L90 90 H10 L20 70 Z" fill="url(#hatGradient)" stroke="#00cc7a" stroke-width="2"/>
+                        <circle cx="50" cy="50" r="10" fill="#1e1e2f"/>
+                        <path d="M30 80 Q50 60 70 80" fill="none" stroke="#00ff99" stroke-width="3"/>
+                    </svg>
+                    <span class="logo-text">Green Hat Platform</span>
+                </div>
+                <div class="language-switcher">
+                    <select id="language">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- بيانات العميل -->
+            <div class="card">
+                <div class="section-title">معلومات العميل</div>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 50%" id="progress-bar"></div>
+                </div>
+                <form id="service-form">
+                    <div id="step1">
+                        <div class="row g-4">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">اختر الخدمة</label>
+                                <select class="form-select" id="service" onchange="updatePrice()">
+                                    <option value="" selected>اختر الخدمة</option>
+                                    <option value="12" data-status="available"> زياده متابعين</option>
+                                    <option value="5" data-status="available"> شراء رقم دائم</option>
+                                    <option value="15" data-status="available"> سحب حساب</option>
+                                    <option value="5" data-status="available"> قفل حساب واتس</option>
+                                    <option value="10" data-status="available"> تطبيق اختراق الهاتف</option>
+                                    <option value="20" data-status="available"> اسكريبت تجميع نجوم من بوتات</option>
+                                    <option value="10" data-status="available"> استرجاع حساب او رقم</option>
+                                    <option value="10" data-status="available"> ادوات صيد مد اثر مدفوعه</option>
+                                </select>
+                                <span class="tooltip-text">حدد الخدمة التي ترغب في طلبها من القائمة</span>
+                                <span id="service-status" class="service-status"></span>
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">سعر الخدمة (USD)</label>
+                                <input type="text" class="form-control" id="price" readonly>
+                                <span class="tooltip-text">سعر الخدمة المختارة بالدولار الأمريكي</span>
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">رسوم التحويل (USD)</label>
+                                <input type="text" class="form-control" id="fee" readonly>
+                                <span class="tooltip-text">رسوم التحويل (5% من سعر الخدمة)</span>
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">اختر وسيلة الدفع</label>
+                                <select class="form-select" id="payment-method" onchange="updateAmount()">
+                                    <option value="" selected>اختر وسيلة الدفع</option>
+                                    <option value="Payeer - USD">Payeer - USD <i class="fas fa-wallet currency-icon"></i></option>
+                                    <option value="Vodafone Cash">Vodafone Cash <i class="fas fa-mobile-alt currency-icon"></i></option>
+                                    <option value="Binance - BNB">Binance - BNB <img src="https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" class="currency-logo" alt="BNB Logo"></option>
+                                    <option value="BYBIT - USDT">BYBIT - USDT <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></option>
+                                    <option value="Trust Wallet - USDT">Trust Wallet - USDT <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></option>
+                                    <option value="Orange Cash">Orange Cash <i class="fas fa-mobile-alt currency-icon"></i></option>
+                                    <option value="Etisalat Cash">Etisalat Cash <i class="fas fa-mobile-alt currency-icon"></i></option>
+                                    <option value="stc pay">stc pay <i class="fas fa-credit-card currency-icon"></i></option>
+                                    <option value="Asia">Asia <i class="fas fa-globe currency-icon"></i></option>
+                                    <option value="likeCard">likeCard <i class="fas fa-gift currency-icon"></i></option>
+                                    <option value="Telegram Wallet - USDT TRC20">Telegram Wallet - USDT TRC20 <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></option>
+                                </select>
+                                <span class="tooltip-text">اختر طريقة الدفع المفضلة لإتمام العملية</span>
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">المبلغ الإجمالي (USD)</label>
+                                <input type="text" class="form-control" id="amount" readonly>
+                                <span class="tooltip-text">إجمالي المبلغ شامل رسوم التحويل</span>
+                                <i class="fas fa-money-bill"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-custom" onclick="showPaymentDetails()">التالي</button>
+                        </div>
+                    </div>
+
+                    <div id="payment-details">
+                        <div class="alert alert-info text-center">
+                            قد تستغرق عملية تأكيد الطلب من 5 إلى 20 دقيقة، ولكن في الغالب تستغرق 10 دقائق فقط.
+                        </div>
+                        <div class="row g-4">
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">رقم الحساب للدفع</label>
+                                <input type="text" class="form-control" id="account-number" readonly>
+                                <span class="tooltip-text">رقم الحساب أو المحفظة لتحويل المبلغ</span>
+                                <i class="fas fa-university"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="form-label">رفع إثبات الدفع (سكرين شوت)</label>
+                                <input type="file" class="form-control" id="screenshot" accept="image/*">
+                                <span class="tooltip-text">ارفع صورة إثبات الدفع لتأكيد العملية</span>
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <div class="col-md-12 form-group" id="captcha-group" style="display: none;">
+                                <label class="form-label">التحقق: كم يساوي <span id="captcha-question"></span>؟</label>
+                                <input type="number" class="form-control" id="captcha-answer">
+                                <span class="tooltip-text">أجب على السؤال للتحقق من أنك لست روبوتًا</span>
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label class="form-label">حساب تيليجرام للتواصل</label>
+                                <input type="text" class="form-control" id="telegram-account" placeholder="@username" required>
+                                <span class="tooltip-text">أدخل حسابك على تيليجرام (مثل @username) للتواصل مع فريق الدعم</span>
+                                <i class="fab fa-telegram-plane"></i>
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label class="form-label">حالة الطلب</label>
+                                <select class="form-select" id="order-status" disabled>
+                                    <option value="pending">قيد الانتظار</option>
+                                    <option value="processing">جاري المعالجة</option>
+                                    <option value="completed">مكتمل</option>
+                                    <option value="failed">فشل</option>
+                                </select>
+                                <span class="tooltip-text">الحالة الحالية لطلبك</span>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-custom">تأكيد الدفع</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- سجل التحويلات -->
+            <div class="card">
+                <div class="section-title">سجل التحويلات الأخيرة</div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped">
+                        <thead>
+                            <tr>
+                                <th>العميل</th>
+                                <th>الخدمة</th>
+                                <th>المبلغ</th>
+                                <th>طريقة الدفع</th>
+                                <th>رقم العملية</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-table">
+                            <tr>
+                                <td>ياسر عبدالله</td>
+                                <td>ادوات صيد مدفوعه</td>
+                                <td>$10</td>
+                                <td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td>
+                                <td>123456781</td>
+                                <td>2025-04-16</td>
+                            </tr>
+                            <tr>
+                                <td>أحمد جمال</td>
+                                <td>زياده متابعين</td>
+                                <td>$12</td>
+                                <td>Vodafone Cash <i class="fas fa-mobile-alt currency-icon"></i></td>
+                                <td>9876543210</td>
+                                <td>2025-04-10</td>
+                            </tr>
+                            <tr>
+                                <td>منة سامي</td>
+                                <td>شراء رقم دائم</td>
+                                <td>$5</td>
+                                <td>Binance - BNB <img src="https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" class="currency-logo" alt="BNB Logo"></td>
+                                <td>764832165</td>
+                                <td>2025-04-12</td>
+                            </tr>
+                            <tr>
+                                <td>خالد محمد</td>
+                                <td>تطبيق اختراق الهاتف</td>
+                                <td>$10</td>
+                                <td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td>
+                                <td>1234567890</td>
+                                <td>2025-04-13</td>
+                            </tr>
+                            <tr>
+                                <td>Sara Ali</td>
+                                <td>شراء رقم دائم</td>
+                                <td>$5</td>
+                                <td>Trust Wallet - USDT <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></td>
+                                <td>4567891234</td>
+                                <td>2025-04-14</td>
+                            </tr>
+                            <tr>
+                                <td>Youssef Hassan</td>
+                                <td>ادوات صيد مدفوعه</td>
+                                <td>$10</td>
+                                <td>stc pay <i class="fas fa-credit-card currency-icon"></i></td>
+                                <td>9871236540</td>
+                                <td>2025-04-14</td>
+                            </tr>
+                            <tr>
+                                <td>Laila Ahmed</td>
+                                <td>تطبيق اختراق الهاتف</td>
+                                <td>$10</td>
+                                <td>Orange Cash <i class="fas fa-mobile-alt currency-icon"></i></td>
+                                <td>3216549870</td>
+                                <td>2025-04-15</td>
+                            </tr>
+                            <tr>
+                                <td>Mahmoud Saleh</td>
+                                <td>سحب حساب</td>
+                                <td>$15</td>
+                                <td>likeCard <i class="fas fa-gift currency-icon"></i></td>
+                                <td>6543217890</td>
+                                <td>2025-04-15</td>
+                            </tr>
+                            <tr>
+                                <td>momo so</td>
+                                <td>ادوات صيد مدفوعه</td>
+                                <td>$10</td>
+                                <td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td>
+                                <td>123456782</td>
+                                <td>2025-04-16</td>
+                            </tr>
+                            <tr>
+                                <td>kha lody</td>
+                                <td>تطبيق اختراق الهاتف</td>
+                                <td>$10</td>
+                                <td>BYBIT - USDT <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></td>
+                                <td>123456783</td>
+                                <td>2025-04-16</td>
+                            </tr>
+                            <tr>
+                                <td>Ali Omar</td>
+                                <td>استرجاع حساب او رقم</td>
+                                <td>$10</td>
+                                <td>Telegram Wallet - USDT TRC20 <img src="https://assets.coingecko.com/coins/images/325/small/Tether.png" class="currency-logo" alt="USDT Logo"></td>
+                                <td>123456784</td>
+                                <td>2025-04-17</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- الخدمات الأكثر طلبًا -->
+            <div class="card">
+                <div class="section-title">الخدمات الأكثر طلبًا</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">تطبيق اختراق الهاتف: 150 طلبًا</li>
+                    <li class="list-group-item">شراء رقم دائم: 120 طلبًا</li>
+                    <li class="list-group-item">ادوات صيد مدفوعه: 90 طلبًا</li>
+                </ul>
+            </div>
+
+            <!-- صفحة الخطأ -->
+            <div class="error-page" id="error-page">
+                <h2>حدث خطأ!</h2>
+                <p>نأسف لحدوث هذا الخطأ. يرجى المحاولة مرة أخرى لاحقًا أو التواصل مع الدعم.</p>
+                <button class="btn btn-custom" onclick="window.location.reload()">إعادة المحاولة</button>
+            </div>
+
+            <!-- Visitor Counter -->
+            <div class="visitor-counter">
+                <h3>عدد الزوار</h3>
+                <span id="visitor-count">63,247</span>
+                <div class="text-center mt-3">
+                    <button class="btn btn-custom" onclick="toggleVisitorStats()">عرض الإحصائيات</button>
+                </div>
+            </div>
+            <!-- Visitor Stats -->
+            <div class="visitor-stats" id="visitor-stats">
+                <canvas id="visitorChart" height="150"></canvas>
+            </div>
+        </div>
+
+        <!-- نافذة تأكيد الطلب -->
+        <div class="modal fade" id="confirmationModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">تأكيد الطلب</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>تم إرسال تأكيد الطلب إلى بريدك الإلكتروني.</p>
+                        <p>الخدمة: <span id="modal-service"></span></p>
+                        <p>المبلغ: <span id="modal-amount"></span></p>
+                        <p>حساب تيليجرام: <span id="modal-telegram"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الدردشة المباشرة -->
+    <div class="chat-bubble" onclick="openChat()">
+        <i class="fas fa-comment"></i>
+    </div>
+    <div class="chat-window" id="chat-window">
+        <div class="chat-header">الدعم المباشر</div>
+        <div class="chat-body">مرحبًا! كيف يمكننا مساعدتك؟</div>
+        <input type="text" class="chat-input" placeholder="اكتب رسالتك...">
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">إشعار</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Translations for Arabic and English
+        const translations = {
+            ar: {
+                title: "Green Hat Platform",
+                clientInfo: "معلومات العميل",
+                selectService: "اختر الخدمة",
+                servicePrice: "سعر الخدمة (USD)",
+                transferFee: "رسوم التحويل (USD)",
+                selectPayment: "اختر وسيلة الدفع",
+                totalAmount: "المبلغ الإجمالي (USD)",
+                next: "التالي",
+                paymentDetails: "قد تستغرق عملية تأكيد الطلب من 5 إلى 20 دقيقة، ولكن في الغالب تستغرق 10 دقائق فقط.",
+                accountNumber: "رقم الحساب للدفع",
+                uploadProof: "رفع إثبات الدفع (سكرين شوت)",
+                telegramAccount: "حساب تيليجرام للتواصل",
+                orderStatus: "حالة الطلب",
+                confirmPayment: "تأكيد الدفع",
+                transactions: "سجل التحويلات الأخيرة",
+                popularServices: "الخدمات الأكثر طلبًا",
+                error: "حدث خطأ!",
+                errorMessage: "نأسف لحدوث هذا الخطأ. يرجى المحاولة مرة أخرى لاحقًا أو التواصل مع الدعم.",
+                retry: "إعادة المحاولة",
+                required: "يرجى اختيار الخدمة ووسيلة الدفع",
+                uploadRequired: "يرجى رفع إثبات الدفع",
+                invalidImage: "يرجى رفع صورة بصيغة PNG أو JPEG",
+                invalidCaptcha: "إجابة التحقق غير صحيحة",
+                invalidTelegram: "يرجى إدخال حساب تيليجرام صالح (مثل @username)",
+                success: "تم تأكيد الدفع بنجاح! سيتم معالجة طلبك خلال 5-20 دقائق.",
+                welcomeTitle: "مرحبًا بك في Green Hat Platform",
+                welcomeText: "The most trusted platform with unparalleled security and lightning-fast speed.",
+                join: "Join Now",
+                tooltipService: "حدد الخدمة التي ترغب في طلبها من القائمة",
+                tooltipPrice: "سعر الخدمة المختارة بالدولار الأمريكي",
+                tooltipFee: "رسوم التحويل (5% من سعر الخدمة)",
+                tooltipPayment: "اختر طريقة الدفع المفضلة لإتمام العملية",
+                tooltipAmount: "إجمالي المبلغ شامل رسوم التحويل",
+                tooltipAccount: "رقم الحساب أو المحفظة لتحويل المبلغ",
+                tooltipProof: "ارفع صورة إثبات الدفع لتأكيد العملية",
+                tooltipCaptcha: "أجب على السؤال للتحقق من أنك لست روبوتًا",
+                tooltipTelegram: "أدخل حسابك على تيليجرام (مثل @username) للتواصل مع فريق الدعم",
+                tooltipStatus: "الحالة الحالية لطلبك"
+            },
+            en: {
+                title: "Green Hat Platform",
+                clientInfo: "Client Information",
+                selectService: "Select Service",
+                servicePrice: "Service Price (USD)",
+                transferFee: "Transfer Fee (USD)",
+                selectPayment: "Select Payment Method",
+                totalAmount: "Total Amount (USD)",
+                next: "Next",
+                paymentDetails: "The order confirmation process may take 5 to 20 minutes, but it usually takes only 10 minutes.",
+                accountNumber: "Account Number for Payment",
+                uploadProof: "Upload Payment Proof (Screenshot)",
+                telegramAccount: "Telegram Account for Communication",
+                orderStatus: "Order Status",
+                confirmPayment: "Confirm Payment",
+                transactions: "Recent Transactions Log",
+                popularServices: "Most Popular Services",
+                error: "An Error Occurred!",
+                errorMessage: "We apologize for this error. Please try again later or contact support.",
+                retry: "Try Again",
+                required: "Please select a service and payment method",
+                uploadRequired: "Please upload payment proof",
+                invalidImage: "Please upload an image in PNG or JPEG format",
+                invalidCaptcha: "Incorrect verification answer",
+                invalidTelegram: "Please enter a valid Telegram account (e.g., @username)",
+                success: "Payment confirmed successfully! Your request will be processed within 5-20 minutes.",
+                welcomeTitle: "Welcome to Green Hat Platform",
+                welcomeText: "The most trusted platform with unparalleled security and lightning-fast speed.",
+                join: "Join Now",
+                tooltipService: "Select the service you wish to request from the list",
+                tooltipPrice: "Price of the selected service in US dollars",
+                tooltipFee: "Transfer fee (5% of the service price)",
+                tooltipPayment: "Choose your preferred payment method to complete the transaction",
+                tooltipAmount: "Total amount including transfer fees",
+                tooltipAccount: "Account or wallet number for transferring the amount",
+                tooltipProof: "Upload a screenshot of the payment proof to confirm the transaction",
+                tooltipCaptcha: "Answer the question to verify you're not a robot",
+                tooltipTelegram: "Enter your Telegram account (e.g., @username) for communication with the support team",
+                tooltipStatus: "Current status of your request"
+            }
+        };
+
+        // Initialize Particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#00ff99' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: true },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: '#00ff99', opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 2, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: { onhover: { enable: true, mode: 'repulse' }, onclick: { enable: true, mode: 'push' }, resize: true },
+                modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+            },
+            retina_detect: true
+        });
+
+        // Show main panel
+        function showMainPanel() {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('main-panel').style.display = 'block';
+        }
+
+        // Calculate transfer fee (5% of service price)
+        function calculateFee(price) {
+            return price * 0.05;
+        }
+
+        // Update service price and fee
+        function updatePrice() {
+            const serviceSelect = document.getElementById('service');
+            const priceInput = document.getElementById('price');
+            const feeInput = document.getElementById('fee');
+            const amountInput = document.getElementById('amount');
+            const statusSpan = document.getElementById('service-status');
+            const price = parseFloat(serviceSelect.value);
+            priceInput.value = price ? `$${price.toFixed(2)}` : '';
+            feeInput.value = price ? `$${calculateFee(price).toFixed(2)}` : '';
+            statusSpan.textContent = price ? 'متوفر' : '';
+            updateAmount();
+        }
+
+        // Update total amount (price + fee)
+        function updateAmount() {
+            const serviceSelect = document.getElementById('service');
+            const paymentMethod = document.getElementById('payment-method').value;
+            const amountInput = document.getElementById('amount');
+            const price = parseFloat(serviceSelect.value);
+            if (price && paymentMethod) {
+                const fee = calculateFee(price);
+                const total = price + fee;
+                amountInput.value = `$${total.toFixed(2)}`;
+            } else {
+                amountInput.value = '';
+            }
+        }
+
+        // Show payment details section
+        function showPaymentDetails() {
+            const service = document.getElementById('service').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+            const accountNumberInput = document.getElementById('account-number');
+
+            if (!service || !paymentMethod) {
+                showToast(translations[currentLang].required, 'error');
+                return;
+            }
+
+            const accountNumbers = {
+                'Payeer - USD': 'P1130544382',
+                'Vodafone Cash': 'Contact the support: https://t.me/Crespii_bot',
+                'Binance - BNB': '0x691cff48c4e21dbdb49452507ce95b40a66ccb04',
+                'BYBIT - USDT': '0x1B1468F18Ed86cB680e5A47D8e706D1464D243ED',
+                'Trust Wallet - USDT': '0x88ea63730a9b4c6228901deedc7e9834dd544490',
+                'Orange Cash': 'Contact the support: https://t.me/Crespii_bot',
+                'Etisalat Cash': 'Contact the support: https://t.me/Crespii_bot',
+                'stc pay': 'Contact the support: https://t.me/Crespii_bot',
+                'Asia': 'Contact the support: https://t.me/Crespii_bot',
+                'likeCard': 'Contact the support: https://t.me/Crespii_bot',
+                'Telegram Wallet - USDT TRC20': 'TVW2JZiszzHr4EyrbRAtCbU4cN9d13UvJN'
+            };
+
+            accountNumberInput.value = accountNumbers[paymentMethod] || 'غير متوفر';
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('payment-details').style.display = 'block';
+            document.getElementById('progress-bar').style.width = '100%';
+
+            
+            const num1 = Math.floor(Math.random() * 10);
+            const num2 = Math.floor(Math.random() * 10);
+            document.getElementById('captcha-question').textContent = `${num1} + ${num2}`;
+            document.getElementById('captcha-group').style.display = 'block';
+            window.captchaAnswer = num1 + num2;
+
+            savePreferences();
+        }
+
+        
+        function showToast(message, type = 'success') {
+            const toastEl = document.getElementById('toast');
+            const toastBody = toastEl.querySelector('.toast-body');
+            toastBody.textContent = message;
+            toastEl.classList.remove('bg-success', 'bg-danger');
+            toastEl.classList.add(type === 'success' ? 'bg-success' : 'bg-danger');
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        // Save user preferences to localStorage
+        function savePreferences() {
+            const service = document.getElementById('service').value;
+            const paymentMethod = document.getElementById('payment-method').value;
+            if (service && paymentMethod) {
+                localStorage.setItem('preferredService', service);
+                localStorage.setItem('preferredPaymentMethod', paymentMethod);
+            }
+        }
+
+        // Initialize form fields to be empty
+        function initializeForm() {
+            document.getElementById('service').value = '';
+            document.getElementById('payment-method').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('fee').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('service-status').textContent = '';
+        }
+
+        // Load user preferences from localStorage (only after user interaction)
+        function loadPreferences() {
+            // Preferences are not loaded automatically on page load
+        }
+
+        // Apply saved preferences (called manually if needed)
+        function applyPreferences() {
+            const service = localStorage.getItem('preferredService');
+            const paymentMethod = localStorage.getItem('preferredPaymentMethod');
+            if (service && paymentMethod) {
+                document.getElementById('service').value = service;
+                document.getElementById('payment-method').value = paymentMethod;
+                updatePrice();
+            }
+        }
+
+        // Validate Telegram account
+        function validateTelegramAccount(telegram) {
+            const telegramRegex = /^@[A-Za-z0-9_]{5,}$/;
+            return telegramRegex.test(telegram);
+        }
+
+        // Handle form submission
+        document.getElementById('service-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const screenshot = document.getElementById('screenshot').files[0];
+            const telegramAccount = document.getElementById('telegram-account').value;
+            const captchaAnswer = parseInt(document.getElementById('captcha-answer').value);
+
+            if (!screenshot) {
+                showToast(translations[currentLang].uploadRequired, 'error');
+                return;
+            }
+
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+            if (!validTypes.includes(screenshot.type)) {
+                showToast(translations[currentLang].invalidImage, 'error');
+                return;
+            }
+
+            if (!validateTelegramAccount(telegramAccount)) {
+                showToast(translations[currentLang].invalidTelegram, 'error');
+                return;
+            }
+
+            if (captchaAnswer !== window.captchaAnswer) {
+                showToast(translations[currentLang].invalidCaptcha, 'error');
+                return;
+            }
+
+            showToast(translations[currentLang].success);
+            document.getElementById('order-status').value = 'processing';
+
+            // Show confirmation modal
+            const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+            document.getElementById('modal-service').textContent = document.getElementById('service').options[document.getElementById('service').selectedIndex].text;
+            document.getElementById('modal-amount').textContent = document.getElementById('amount').value;
+            document.getElementById('modal-telegram').textContent = telegramAccount;
+            modal.show();
+
+            setTimeout(() => {
+                document.getElementById('order-status').value = 'completed';
+            }, 600000); // Mock 10-minute processing
+        });
+
+        // Input validation
+        function validateInput(input) {
+            return input && input.trim() !== '';
+        }
+
+        // Language switcher
+        let currentLang = 'ar';
+        document.getElementById('language').addEventListener('change', function () {
+            currentLang = this.value;
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            updateLanguage();
+        });
+
+        // Update UI based on selected language
+        function updateLanguage() {
+            document.querySelector('#landing-page h1').textContent = translations[currentLang].welcomeTitle;
+            document.querySelector('#landing-page p').textContent = translations[currentLang].welcomeText;
+            document.querySelector('#landing-page .btn-custom').textContent = translations[currentLang].join;
+            document.querySelector('.logo-text').textContent = translations[currentLang].title;
+            document.querySelectorAll('.section-title')[0].textContent = translations[currentLang].clientInfo;
+            document.querySelectorAll('.form-label')[0].textContent = translations[currentLang].selectService;
+            document.querySelectorAll('.form-label')[1].textContent = translations[currentLang].servicePrice;
+            document.querySelectorAll('.form-label')[2].textContent = translations[currentLang].transferFee;
+            document.querySelectorAll('.form-label')[3].textContent = translations[currentLang].selectPayment;
+            document.querySelectorAll('.form-label')[4].textContent = translations[currentLang].totalAmount;
+            document.querySelectorAll('.btn-custom')[1].textContent = translations[currentLang].next;
+            document.querySelector('.alert-info').textContent = translations[currentLang].paymentDetails;
+            document.querySelectorAll('.form-label')[5].textContent = translations[currentLang].accountNumber;
+            document.querySelectorAll('.form-label')[6].textContent = translations[currentLang].uploadProof;
+            document.querySelectorAll('.form-label')[7].textContent = translations[currentLang].captcha;
+            document.querySelectorAll('.form-label')[8].textContent = translations[currentLang].telegramAccount;
+            document.querySelectorAll('.form-label')[9].textContent = translations[currentLang].orderStatus;
+            document.querySelectorAll('.btn-custom')[2].textContent = translations[currentLang].confirmPayment;
+            document.querySelectorAll('.section-title')[1].textContent = translations[currentLang].transactions;
+            document.querySelectorAll('.section-title')[2].textContent = translations[currentLang].popularServices;
+            document.querySelector('#error-page h2').textContent = translations[currentLang].error;
+            document.querySelector('#error-page p').textContent = translations[currentLang].errorMessage;
+            document.querySelector('#error-page button').textContent = translations[currentLang].retry;
+
+            // Update tooltips
+            document.querySelectorAll('.tooltip-text')[0].textContent = translations[currentLang].tooltipService;
+            document.querySelectorAll('.tooltip-text')[1].textContent = translations[currentLang].tooltipPrice;
+            document.querySelectorAll('.tooltip-text')[2].textContent = translations[currentLang].tooltipFee;
+            document.querySelectorAll('.tooltip-text')[3].textContent = translations[currentLang].tooltipPayment;
+            document.querySelectorAll('.tooltip-text')[4].textContent = translations[currentLang].tooltipAmount;
+            document.querySelectorAll('.tooltip-text')[5].textContent = translations[currentLang].tooltipAccount;
+            document.querySelectorAll('.tooltip-text')[6].textContent = translations[currentLang].tooltipProof;
+            document.querySelectorAll('.tooltip-text')[7].textContent = translations[currentLang].tooltipCaptcha;
+            document.querySelectorAll('.tooltip-text')[8].textContent = translations[currentLang].tooltipTelegram;
+            document.querySelectorAll('.tooltip-text')[9].textContent = translations[currentLang].tooltipStatus;
+
+            // Update order status options
+            const orderStatusSelect = document.getElementById('order-status');
+            orderStatusSelect.innerHTML = `
+                <option value="pending">${currentLang === 'ar' ? 'قيد الانتظار' : 'Pending'}</option>
+                <option value="processing">${currentLang === 'ar' ? 'جاري المعالجة' : 'Processing'}</option>
+                <option value="completed">${currentLang === 'ar' ? 'مكتمل' : 'Completed'}</option>
+                <option value="failed">${currentLang === 'ar' ? 'فشل' : 'Failed'}</option>
+            `;
+
+            // Update modal
+            document.querySelector('#confirmationModal .modal-title').textContent = currentLang === 'ar' ? 'تأكيد الطلب' : 'Order Confirmation';
+            document.querySelector('#confirmationModal .modal-body p:first-child').textContent = currentLang === 'ar' ? 'تم إرسال تأكيد الطلب إلى بريدك الإلكتروني.' : 'Order confirmation has been sent to your email.';
+        }
+
+        // Mock API for exchange rates
+        async function fetchExchangeRates() {
+            try {
+                return { USD: 1, EGP: 48.5 }; // Mock rates
+            } catch (error) {
+                showErrorPage();
+            }
+        }
+
+        // Show error page
+        function showErrorPage() {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('main-panel').style.display = 'none';
+            document.getElementById('error-page').style.display = 'block';
+        }
+
+        // Open chat window
+        function openChat() {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.style.display = chatWindow.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Lazy load transactions
+        let transactionPage = 1;
+        function loadMoreTransactions() {
+            const tableBody = document.getElementById('transaction-table');
+            const newRows = [
+                `<tr><td>ياسر عبدالله</td><td>ادوات صيد مدفوعه</td><td>$10</td><td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td><td>12345678${transactionPage}</td><td>2025-04-16</td></tr>`,
+                `<tr><td>Emma Wilson</td><td>ادوات صيد مدفوعه</td><td>$10</td><td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td><td>12345678${transactionPage + 1}</td><td>2025-04-16</td></tr>`,
+                `<tr><td>James Carter</td><td>تطبيق اختراق الهاتف</td><td>$10</td><td>Payeer - USD <i class="fas fa-wallet currency-icon"></i></td><td>12345678${transactionPage + 2}</td><td>2025-04-16</td></tr>`
+            ];
+            tableBody.insertAdjacentHTML('beforeend', newRows.join(''));
+            transactionPage += 3;
+        }
+
+        // Initialize lazy loading
+        function initLazyLoading() {
+            const observer = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting) {
+                    loadMoreTransactions();
+                }
+            }, { threshold: 0.1 });
+            observer.observe(document.querySelector('.table-dark'));
+        }
+
+        // Visitor counter logic
+        function initVisitorCounter() {
+            let visitorCount = 63247;
+            const visitorCountElement = document.getElementById('visitor-count');
+            visitorCountElement.textContent = visitorCount.toLocaleString('en-US');
+
+            function incrementVisitorCount() {
+                const increment = Math.floor(Math.random() * 4) + 1;
+                visitorCount += increment;
+                visitorCountElement.textContent = visitorCount.toLocaleString('en-US');
+                const randomInterval = Math.floor(Math.random() * 30000) + 1000;
+                setTimeout(incrementVisitorCount, randomInterval);
+            }
+
+            incrementVisitorCount();
+        }
+
+        // Visitor stats chart
+        function initVisitorChart() {
+            const ctx = document.getElementById('visitorChart').getContext('2d');
+            const visitorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'],
+                    datasets: [{
+                        label: 'عدد الزوار',
+                        data: [62000, 62500, 63000, 62750, 63247, 63500, 64000],
+                        borderColor: '#00ff99',
+                        backgroundColor: 'rgba(0, 255, 150, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Toggle visitor stats visibility
+        function toggleVisitorStats() {
+            const statsDiv = document.getElementById('visitor-stats');
+            statsDiv.classList.toggle('active');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeForm();
+            updateLanguage();
+            fetchExchangeRates().then(rates => {
+                console.log('Exchange rates:', rates);
+            });
+            initLazyLoading();
+            initVisitorCounter();
+            initVisitorChart();
+        });
+    </script>
+</body>
+
+</html>
